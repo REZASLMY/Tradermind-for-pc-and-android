@@ -34,6 +34,7 @@ import { getByDay, getBySession } from "../services/performanceService";
 import { useAppStore } from "../store/useAppStore";
 import { getTradingDateKey, getTradingDateRange, getTradingMonthKey } from "../lib/tradingTime";
 import { getNetPnl } from "../lib/tradeHelpers";
+import { DashboardOverview } from "../components/dashboard/DashboardOverview";
 
 // ══════════════════════════════════════════════════════════════════
 // ثوابت و نوع‌ها
@@ -511,6 +512,19 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
+
+      {/* ━━━━━━━━━━━━━━━━ 1b. نمای کلی (KPI، Equity، توزیع) — فاز ۳ ━━━━━━━━━━━━━━━━ */}
+      <DashboardOverview
+        trades={rangedTrades}
+        strategyName={(id) => stratMap.get(id) ?? "استراتژی نامشخص"}
+        range={rangeKey}
+        onRangeChange={setRangeKey}
+        prev={prevRangedStats ? {
+          winRate: prevRangedStats.closedCount > 0 ? prevRangedStats.winRate : null,
+          profitFactor: prevRangedStats.profitFactor,
+          closedCount: prevRangedStats.closedCount,
+        } : null}
+      />
 
       {/* ━━━━━━━━━━━━━━━━ 2. تحلیل‌های نیمه‌کاره ━━━━━━━━━━━━━━━━ */}
       {inProgressSessions.length > 0 && (

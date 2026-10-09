@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
 import { useLocation } from "wouter";
 import {
-  Moon, Sun, Monitor, Type, Palette, Globe, Activity, BookOpen, Clock,
+  Moon, Sun, Monitor, Sparkles, Type, Palette, Globe, Activity, BookOpen, Clock,
   LayoutDashboard, HardDrive, Info, Database, Trash2,
   Plus, X, Download, Upload, WifiOff, ShieldCheck, Lock, LockOpen,
   Bell, RefreshCw, Smile, KeyRound, Eye, EyeOff, CheckCircle2, AlertTriangle, SlidersHorizontal
@@ -385,6 +385,7 @@ export default function Settings() {
   const store = useAppStore(
     useShallow(s => ({
        theme: s.theme, fontSize: s.fontSize, colorTheme: s.colorTheme, textColor: s.textColor,
+      glassEffects: s.glassEffects, softAnimations: s.softAnimations,
       analysisAutosave: s.analysisAutosave, analysisShowNextStep: s.analysisShowNextStep,
       analysisPhaseSummary: s.analysisPhaseSummary, analysisConfirmPhase: s.analysisConfirmPhase,
       analysisProgressBar: s.analysisProgressBar,
@@ -400,6 +401,7 @@ export default function Settings() {
       tradingTimeMode: s.tradingTimeMode, brokerUtcOffsetMinutes: s.brokerUtcOffsetMinutes,
       // setters
        setTheme: s.setTheme, setFontSize: s.setFontSize,
+      setGlassEffects: s.setGlassEffects, setSoftAnimations: s.setSoftAnimations,
        setColorTheme: s.setColorTheme, setTextColor: s.setTextColor,
       setAnalysisAutosave: s.setAnalysisAutosave, setAnalysisShowNextStep: s.setAnalysisShowNextStep,
       setAnalysisPhaseSummary: s.setAnalysisPhaseSummary, setAnalysisConfirmPhase: s.setAnalysisConfirmPhase,
@@ -488,10 +490,11 @@ export default function Settings() {
       <Section icon={Sun} title={t.settings.appearance} description={t.settings.appearanceDesc}>
         <div>
           <p className="text-sm font-medium mb-2">{t.settings.displayMode}</p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {[
               { value: 'light', label: t.settings.light, icon: Sun },
               { value: 'dark',  label: t.settings.dark,  icon: Moon },
+              { value: 'neon',  label: t.settings.neon,  icon: Sparkles },
               { value: 'system', label: t.settings.system, icon: Monitor },
             ].map(({ value, label, icon: Icon }) => (
               <button key={value} onClick={() => store.setTheme(value as any)}
@@ -529,6 +532,20 @@ export default function Settings() {
               </button>
             ))}
           </div>
+        </div>
+        <div className="divide-y divide-border/50 rounded-xl border border-border/60 px-3">
+          <SwitchRow
+            label="شفافیت شیشه‌ای"
+            description="افکت محوشدگی پنل‌ها؛ برای دستگاه‌های ضعیف‌تر خاموش کنید"
+            checked={store.glassEffects}
+            onChange={store.setGlassEffects}
+          />
+          <SwitchRow
+            label="انیمیشن‌های نرم"
+            description="حرکت و جابه‌جایی‌های کوتاه رابط کاربری"
+            checked={store.softAnimations}
+            onChange={store.setSoftAnimations}
+          />
         </div>
         <div>
           <div className="flex items-center justify-between gap-3 mb-2">
@@ -573,7 +590,7 @@ export default function Settings() {
             <div className="flex items-center gap-2">
               <input
                 type="color"
-                value={store.textColor === 'auto' ? (store.theme === 'light' ? '#1a202c' : '#e2e8f0') : store.textColor}
+                value={store.textColor === 'auto' ? (store.theme === 'light' ? '#1a202c' : store.theme === 'neon' ? '#f1f7ff' : '#e2e8f0') : store.textColor}
                 onChange={e => store.setTextColor(e.target.value as `#${string}`)}
                 className="h-9 w-12 cursor-pointer rounded-md border border-border bg-transparent p-1"
                 aria-label="انتخاب رنگ متن"

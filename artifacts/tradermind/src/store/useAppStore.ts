@@ -4,7 +4,7 @@ import { persist } from 'zustand/middleware';
 // ─────────────────────────────────────────────
 // انواع
 // ─────────────────────────────────────────────
-export type ThemeMode = 'light' | 'dark' | 'system';
+export type ThemeMode = 'light' | 'dark' | 'neon' | 'system';
 export type FontSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 export type ColorTheme = 'blue' | 'violet' | 'emerald' | 'amber' | 'rose';
 export type TextColor = 'auto' | `#${string}`;
@@ -15,6 +15,10 @@ export interface AppSettings {
   // ظاهر
   theme: ThemeMode;
   fontSize: FontSize;
+  /** شفافیت/blur سطوح شیشه‌ای؛ خاموش = سطح مات (سبک‌تر برای دستگاه‌های ضعیف) */
+  glassEffects: boolean;
+  /** انیمیشن‌ها و جابه‌جایی‌های نرم رابط */
+  softAnimations: boolean;
   colorTheme: ColorTheme;
   textColor: TextColor;
   language: Language;
@@ -63,6 +67,8 @@ interface AppActions {
   toggleSidebar: () => void;
   setTheme: (theme: ThemeMode) => void;
   setFontSize: (size: FontSize) => void;
+  setGlassEffects: (v: boolean) => void;
+  setSoftAnimations: (v: boolean) => void;
   setColorTheme: (theme: ColorTheme) => void;
   setTextColor: (color: TextColor) => void;
   setLanguage: (lang: Language) => void;
@@ -104,6 +110,8 @@ interface AppActions {
 const defaults: AppSettings = {
   theme: 'dark',
   fontSize: 'md',
+  glassEffects: true,
+  softAnimations: true,
   colorTheme: 'blue',
   textColor: 'auto',
   language: 'fa',
@@ -148,6 +156,8 @@ export const useAppStore = create<AppSettings & AppActions>()(
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
       setTheme: (theme) => set({ theme }),
       setFontSize: (fontSize) => set({ fontSize }),
+      setGlassEffects: (glassEffects) => set({ glassEffects }),
+      setSoftAnimations: (softAnimations) => set({ softAnimations }),
       setColorTheme: (colorTheme) => set({ colorTheme }),
       setTextColor: (textColor) => set({ textColor }),
       setLanguage: (language) => set({ language }),
@@ -201,7 +211,7 @@ export const useAppStore = create<AppSettings & AppActions>()(
         ...persisted,
         sidebarOpen: false,
         // backward compat: اگر theme قدیمی بود، معتبر باشد
-        theme: ['light', 'dark', 'system'].includes(persisted?.theme)
+        theme: ['light', 'dark', 'neon', 'system'].includes(persisted?.theme)
           ? persisted.theme
           : defaults.theme,
         fontSize: ['xs', 'sm', 'md', 'lg', 'xl'].includes(persisted?.fontSize)
