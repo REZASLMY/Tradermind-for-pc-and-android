@@ -1240,7 +1240,7 @@ export default function NewTrade() {
               </div>
             </div>
 
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(15rem,1fr))] gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5 [&>div]:min-w-0">
               <div className="space-y-2">
                 <Label>Closed At</Label>
                 <Input 
@@ -1258,7 +1258,7 @@ export default function NewTrade() {
                 <NumericInput value={trade.profitLoss} onValueChange={value => handleChange('profitLoss', value)} />
               </div>
               <div className="space-y-2">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-wrap justify-between items-center gap-x-2">
                   <Label>R Multiple</Label>
                   {computedR && <span className="text-xs text-muted-foreground" title="از سود/زیان خالص تقسیم بر مبلغ ریسک استفاده می‌کند؛ اگر ریسک دلاری ثبت نشده باشد، از فاصلهٔ ورود تا حد ضرر محاسبه می‌شود.">محاسبه‌شده: {computedR}R</span>}
                 </div>
@@ -1276,12 +1276,12 @@ export default function NewTrade() {
                 <Label>اسپرد</Label>
                 <NumericInput value={trade.spread ?? null} onValueChange={value => handleChange('spread', value)} />
               </div>
-              <div className="space-y-2 lg:col-span-2">
+              <div className="space-y-2 sm:col-span-2">
                 <Label>Reason for Exit</Label>
                 <Input value={trade.reasonForExit || ''} onChange={e => handleChange('reasonForExit', e.target.value)} placeholder="Hit target, trailed stop, etc." />
               </div>
               {trade.profitLoss !== null && (
-                <div className="lg:col-span-4 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
+                <div className="sm:col-span-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
                   <span className="text-muted-foreground">سود/زیان خالص پس از هزینه‌ها: </span>
                   <strong className={netPnl !== null && netPnl >= 0 ? 'text-emerald-500' : 'text-rose-500'} dir="ltr">
                     {netPnl?.toFixed(2)}
