@@ -869,9 +869,9 @@ export default function NewTrade() {
         </div>
       )}
 
-      <div className="tm-trade-form grid gap-4 xl:grid-cols-2 2xl:grid-cols-3 items-start">
+      <div className="tm-trade-form">
         {isQuickMode && (
-          <section className="space-y-4 rounded-xl border border-primary/25 bg-primary/[0.025] p-4 xl:col-span-2 2xl:col-span-3" data-testid="quick-trade-form">
+          <section className="space-y-4 rounded-xl border border-primary/25 bg-primary/[0.025] p-4 tm-span-all" data-testid="quick-trade-form">
             <div>
               <h2 className="text-lg font-semibold">ثبت سریع اسکالپ</h2>
               <p className="mt-1 text-xs text-muted-foreground">نماد، جهت، ورود و حد ضرر را ثبت کنید؛ بخش‌های اختیاری در حالت کامل در دسترس‌اند.</p>
@@ -935,7 +935,7 @@ export default function NewTrade() {
         )}
 
         {/* SECTION 1: Trade Info */}
-        {!isQuickMode && (<section className="space-y-6 xl:col-span-2 2xl:col-span-3">
+        {!isQuickMode && (<section className="space-y-6 tm-span-all">
           <h2 className="text-lg font-semibold border-b pb-2">1. Trade Info</h2>
           {journalSessionId && <Card className="border-primary/20 bg-primary/[0.03]" data-testid="card-journal-session-context">
             <CardContent className="space-y-3 p-4">
@@ -1429,7 +1429,7 @@ export default function NewTrade() {
 
         {/* ── تحلیل چند تایم‌فریمی (MTF) ── */}
         {!isQuickMode && !journalSessionId && (
-          <section className="space-y-4 xl:col-span-2 2xl:col-span-3">
+          <section className="space-y-4 tm-span-all">
             <h2 className="text-lg font-semibold border-b pb-2">۶ب. تحلیل چند تایم‌فریمی</h2>
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-border p-3">
               <span className="text-xs text-muted-foreground">تایم‌فریم‌ها:</span>
@@ -1605,7 +1605,7 @@ export default function NewTrade() {
         )}
 
         {/* SECTION 7: Screenshots */}
-        <section className="space-y-4 xl:col-span-2 2xl:col-span-3">
+        <section className="space-y-4 tm-span-all">
           <h2 className="text-lg font-semibold border-b pb-2">۷. اسکرین‌شات‌ها</h2>
           <ScreenshotManager
             trade={trade}
@@ -1616,7 +1616,7 @@ export default function NewTrade() {
 
         {/* SECTION 8: Review */}
         {!isQuickMode && !journalSessionId && trade.status === 'closed' && (
-          <section className="space-y-6 animate-in slide-in-from-bottom-4 xl:col-span-2 2xl:col-span-3">
+          <section className="space-y-6 animate-in slide-in-from-bottom-4 tm-span-all">
             <h2 className="text-lg font-semibold border-b pb-2">8. Trade Review</h2>
             
             <div className="grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-6">
@@ -1672,7 +1672,7 @@ export default function NewTrade() {
         )}
 
         {/* SECTION 9: Notes & Tags */}
-        {!isQuickMode && (<section className="space-y-6 xl:col-span-2 2xl:col-span-3">
+        {!isQuickMode && (<section className="space-y-6 tm-span-all">
           <h2 className="text-lg font-semibold border-b pb-2">۹. یادداشت و برچسب معامله</h2>
           <div className="space-y-4">
             <div className="space-y-2">
