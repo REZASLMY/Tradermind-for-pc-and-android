@@ -685,3 +685,12 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .tm-trade-form select,
 .tm-trade-form textarea,
 .tm-trade-form button[role="combobox"] { max-width: 100%; }
+
+
+/* چیدمان فرم معامله: «مثل کاشی‌چینی» (masonry)؛ کادرها بدون فضای خالی زیر هم می‌نشینند و
+   با تغییر اندازهٔ پنجره ۱ / ۲ / ۳ ستونه می‌شوند. بخش‌های تمام‌عرض با tm-span-all می‌شکنند. */
+.tm-trade-form { display: block; column-gap: 1rem; }
+.tm-trade-form > * { break-inside: avoid; margin-bottom: 1rem; }
+.tm-trade-form > .tm-span-all { column-span: all; }
+@media (min-width: 1280px) { .tm-trade-form { column-count: 2; } }
+@media (min-width: 1536px) { .tm-trade-form { column-count: 3; } }
