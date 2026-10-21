@@ -936,7 +936,7 @@ export default function NewTrade() {
 
         {/* SECTION 1: Trade Info */}
         {!isQuickMode && (<section className="space-y-6 tm-span-all">
-          <h2 className="text-lg font-semibold border-b pb-2">1. Trade Info</h2>
+          <h2 className="text-lg font-semibold border-b pb-2">Trade Info</h2>
           {journalSessionId && <Card className="border-primary/20 bg-primary/[0.03]" data-testid="card-journal-session-context">
             <CardContent className="space-y-3 p-4">
               <div><p className="text-xs font-medium text-primary">زمینهٔ ثابت سشن</p><p className="mt-1 text-sm text-muted-foreground">نماد، بازار، حساب، باکس و استراتژی از سشن خوانده می‌شوند و در فرم معامله دوباره درخواست نمی‌شوند.</p></div>
@@ -1108,7 +1108,7 @@ export default function NewTrade() {
 
         {/* SECTION 2: Entry Details */}
         {!isQuickMode && (<section className="space-y-6">
-          <h2 className="text-lg font-semibold border-b pb-2">2. Entry Details</h2>
+          <h2 className="text-lg font-semibold border-b pb-2">Entry Details</h2>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(15rem,1fr))] gap-6">
             <div className="space-y-2">
               <Label>Opened At</Label>
@@ -1135,7 +1135,7 @@ export default function NewTrade() {
 
         {/* SECTION 3: Position Sizing — از ۰.۰۱ لات شروع می‌شود */}
         {!isQuickMode && (<section className="space-y-6">
-          <h2 className="text-lg font-semibold border-b pb-2">3. حجم و ریسک</h2>
+          <h2 className="text-lg font-semibold border-b pb-2">حجم و ریسک</h2>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-6">
             {/* حجم پوزیشن — لیست از ۰.۰۱ */}
             <div className="space-y-2">
@@ -1216,7 +1216,7 @@ export default function NewTrade() {
         {/* SECTION 4: Exit Details */}
         {!isQuickMode && trade.status === 'closed' && (
           <section className="space-y-6 animate-in slide-in-from-bottom-4">
-            <h2 className="text-lg font-semibold border-b pb-2">4. Exit Details</h2>
+            <h2 className="text-lg font-semibold border-b pb-2">Exit Details</h2>
             
             <div className="space-y-2">
               <Label>Result</Label>
@@ -1296,7 +1296,7 @@ export default function NewTrade() {
         {/* ── مدیریت معامله ── */}
         {!isQuickMode && !journalSessionId && trade.status === 'closed' && (
           <section className="space-y-4">
-            <h2 className="text-lg font-semibold border-b pb-2">۴ب. مدیریت معامله</h2>
+            <h2 className="text-lg font-semibold border-b pb-2">مدیریت معامله</h2>
             <div className="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-3">
               {[
                 { key: 'slMoved',         label: 'جابجایی حد ضرر' },
@@ -1338,7 +1338,7 @@ export default function NewTrade() {
         {/* SECTION 5: Strategy Adherence */}
         {(trade.sessionId || sessionId) && (
           <section className="space-y-6">
-            <h2 className="text-lg font-semibold border-b pb-2">5. Strategy Adherence</h2>
+            <h2 className="text-lg font-semibold border-b pb-2">Strategy Adherence</h2>
             
             <Card className="bg-muted/30">
               <CardContent className="p-4">
@@ -1398,7 +1398,7 @@ export default function NewTrade() {
 
         {/* SECTION 6: Emotions — به فارسی */}
         {!isQuickMode && !journalSessionId && (<section className="space-y-6">
-          <h2 className="text-lg font-semibold border-b pb-2">۶. وضعیت احساسی</h2>
+          <h2 className="text-lg font-semibold border-b pb-2">وضعیت احساسی</h2>
           <div className="flex flex-wrap gap-2">
             {availableEmotions.map(emo => {
               const isSelected = currentEmotions.includes(emo.id);
@@ -1430,7 +1430,7 @@ export default function NewTrade() {
         {/* ── تحلیل چند تایم‌فریمی (MTF) ── */}
         {!isQuickMode && !journalSessionId && (
           <section className="space-y-4 tm-span-all">
-            <h2 className="text-lg font-semibold border-b pb-2">۶ب. تحلیل چند تایم‌فریمی</h2>
+            <h2 className="text-lg font-semibold border-b pb-2">تحلیل چند تایم‌فریمی</h2>
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-border p-3">
               <span className="text-xs text-muted-foreground">تایم‌فریم‌ها:</span>
               {mtfTimeframes.map(tf => (
@@ -1606,7 +1606,7 @@ export default function NewTrade() {
 
         {/* SECTION 7: Screenshots */}
         <section className="space-y-4 tm-span-all">
-          <h2 className="text-lg font-semibold border-b pb-2">۷. اسکرین‌شات‌ها</h2>
+          <h2 className="text-lg font-semibold border-b pb-2">اسکرین‌شات‌ها</h2>
           <ScreenshotManager
             trade={trade}
             allTrades={allTrades}
@@ -1617,7 +1617,7 @@ export default function NewTrade() {
         {/* SECTION 8: Review */}
         {!isQuickMode && !journalSessionId && trade.status === 'closed' && (
           <section className="space-y-6 animate-in slide-in-from-bottom-4 tm-span-all">
-            <h2 className="text-lg font-semibold border-b pb-2">8. Trade Review</h2>
+            <h2 className="text-lg font-semibold border-b pb-2">Trade Review</h2>
             
             <div className="grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-6">
               <div className="space-y-2">
@@ -1673,7 +1673,7 @@ export default function NewTrade() {
 
         {/* SECTION 9: Notes & Tags */}
         {!isQuickMode && (<section className="space-y-6 tm-span-all">
-          <h2 className="text-lg font-semibold border-b pb-2">۹. یادداشت و برچسب معامله</h2>
+          <h2 className="text-lg font-semibold border-b pb-2">یادداشت و برچسب معامله</h2>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>برچسب‌های معامله</Label>
