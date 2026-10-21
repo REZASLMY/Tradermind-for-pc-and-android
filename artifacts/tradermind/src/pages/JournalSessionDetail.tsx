@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useLocation, useParams } from 'wouter';
 import {
   ArrowRight, CalendarClock, Check, CircleAlert, FilePlus2, Film, Image as ImageIcon,
-  Paperclip, Pencil, Plus, Save, ShieldCheck, Target, Trash2, TrendingDown, TrendingUp, X,
+  Paperclip, Pencil, Plus, Save, ShieldCheck, Target, Trash2, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { accountService } from '../services/accountService';
@@ -11,6 +11,7 @@ import { describeSessionMoment } from '../lib/sessionDateTime';
 import { classifyScenarioOutcome, SCENARIO_OUTCOME_TONE, scenarioAccuracy } from '../lib/scenarioOutcome';
 import { AnalysisFlexibleField } from '../components/journal/AnalysisFlexibleField';
 import { JournalMediaStrip } from '../components/journal/JournalMediaStrip';
+import { SessionTradesLog } from '../components/journal/SessionTradesLog';
 import { tradingBoxService } from '../services/tradingBoxService';
 import { deleteScreenshotForMedia, saveJournalMediaScreenshot } from '../services/screenshotIntelligenceService';
 import {
@@ -475,7 +476,6 @@ export default function JournalSessionDetail() {
     { label: 'مجموع R', value: metrics ? `${money(metrics.totalR)}R` : '—' },
     { label: 'میانگین R', value: metrics?.averageR == null ? '—' : `${money(metrics.averageR)}R` },
   ];
-  const directionName = (trade: Trade) => trade.direction === 'long' ? 'خرید' : 'فروش';
   const scrollToTrigger = () => document.getElementById('journal-trigger-capture')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   const optionLabel = (optionId: string | null | undefined, fallback: string) =>
     bundleOptions.find(option => option.id === optionId)?.label ?? fallback;
@@ -685,6 +685,8 @@ export default function JournalSessionDetail() {
       )}
     </section>
 
+    <SessionTradesLog bundle={bundle} onStartTrade={scrollToTrigger} />
+
     <section id="journal-trigger-capture" className="space-y-3" aria-labelledby="trigger-heading">
       <div className="flex items-end justify-between gap-3"><div><p className="text-[10px] font-medium tracking-[0.18em] text-primary">EXECUTION TRIGGER</p><h2 id="trigger-heading" className="mt-1 text-xl font-semibold">تریگر و ثبت معامله</h2></div><Badge variant="outline" data-testid="text-trigger-count">{triggers.length} تریگر · {triggers.filter(item => item.status === 'ignored').length} نادیده · {triggers.filter(item => item.status === 'invalid').length} نامعتبر</Badge></div>
       <Card className="tradermind-card" data-testid="card-trigger-capture">
@@ -873,28 +875,6 @@ export default function JournalSessionDetail() {
       </div>
     </section>
 
-    <section className="space-y-3" aria-labelledby="linked-trades-heading">
-      <div className="flex items-end justify-between gap-3"><div><p className="text-[10px] font-medium tracking-[0.18em] text-primary">EXECUTION LOG</p><h2 id="linked-trades-heading" className="mt-1 text-xl font-semibold">معاملات متصل</h2></div><Badge variant="outline" data-testid="text-linked-trade-count">{bundle.trades.length} معامله</Badge></div>
-      {bundle.trades.length === 0 ? <Card className="border-dashed bg-card/50" data-testid="empty-linked-trades"><CardContent className="flex flex-col items-center gap-3 p-8 text-center">
-        <Target className="h-7 w-7 text-muted-foreground/70" /><h3 className="font-semibold">هنوز معامله‌ای به این سشن وصل نیست</h3><p className="max-w-md text-sm leading-6 text-muted-foreground">وقتی آمادهٔ اجرا هستید، فرم ثبت معامله را از اینجا باز کنید تا پیوند سشن حفظ شود.</p>
-              <Button onClick={scrollToTrigger} className="gap-2" data-testid="button-first-linked-trade"><Plus className="h-4 w-4" />شروع ثبت معامله</Button>
-      </CardContent></Card> : <Card className="tradermind-card overflow-hidden">
-        <div className="divide-y divide-border/70">{bundle.trades.map(trade => {
-          const resultLabel = trade.status === 'open' ? 'باز' : trade.result === 'win' || trade.result === 'partial-win' ? 'سود' : trade.result === 'loss' || trade.result === 'partial-loss' ? 'زیان' : trade.result === 'cancelled' ? 'لغوشده' : 'سر به سر';
-          const pnl = trade.profitLoss;
-          return <div key={trade.id} className="flex items-center gap-2 px-4 py-3 transition-colors hover:bg-muted/30 sm:px-5" data-testid={`row-linked-trade-${trade.id}`}>
-            <Link href={`/journal/trades/${trade.id}`} className="flex min-w-0 flex-1 items-center justify-between gap-4 py-1" data-testid={`link-linked-trade-${trade.id}`}>
-              <span className="flex min-w-0 items-center gap-3">
-                <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${trade.direction === 'long' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/10 text-rose-700 dark:text-rose-300'}`}>{trade.direction === 'long' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}</span>
-                <span className="min-w-0"><span className="flex flex-wrap items-center gap-2 font-semibold"><span>{trade.symbol}</span><Badge variant="outline" className="text-[10px]">{directionName(trade)}</Badge><Badge variant={trade.status === 'open' ? 'secondary' : 'outline'} className="text-[10px]">{resultLabel}</Badge></span><span className="mt-1 block text-xs text-muted-foreground">{localDate(trade.openedAt)}{trade.rMultiple != null ? ` · ${money(trade.rMultiple)}R` : ''}</span></span>
-              </span>
-              <span className={`shrink-0 text-left font-mono text-sm font-semibold ${pnl == null ? 'text-muted-foreground' : pnl >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}>{pnl == null ? '—' : money(pnl)}</span>
-            </Link>
-            <Link href={`/journal/trades/${trade.id}/journal`} className="shrink-0 rounded-md border px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/5" data-testid={`link-trade-review-${trade.id}`}>مرور ژورنال</Link>
-          </div>;
-        })}</div>
-      </Card>}
-    </section>
     <div className="flex items-center gap-2 border-t border-border/60 pt-4 text-[11px] text-muted-foreground"><ShieldCheck className="h-3.5 w-3.5 text-primary" />سوابق سشن و پیوست‌ها روی همین دستگاه نگهداری می‌شوند.</div>
   </main>;
 }
