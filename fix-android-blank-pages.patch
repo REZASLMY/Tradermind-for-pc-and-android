@@ -1,0 +1,44 @@
+From 71ede635e33e1d5d14d2186dfc2a36e08417394b Mon Sep 17 00:00:00 2001
+From: tm <a@b.c>
+Date: Fri, 9 Oct 2026 10:12:35 +0000
+Subject: [PATCH] Fix blank pages in native (Capacitor) build: router base './'
+ resolved to '.'
+
+---
+ artifacts/tradermind/src/App.tsx | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/artifacts/tradermind/src/App.tsx b/artifacts/tradermind/src/App.tsx
+index 30c34c9..768f52e 100644
+--- a/artifacts/tradermind/src/App.tsx
++++ b/artifacts/tradermind/src/App.tsx
+@@ -323,6 +323,17 @@ function AppContent() {
+ }
+ 
+ // ── App اصلی ────────────────────────────────────────────
++/**
++ * پایه‌ی مسیریاب. در بیلد بومی (Capacitor/Electron) مقدار BASE_URL برابر './' است
++ * که پس از حذف '/' آخر به '.' تبدیل می‌شد و با هیچ مسیری نمی‌خواند (صفحه‌ی خالی).
++ * پایه‌ی نسبی یعنی «بدون پایه».
++ */
++function routerBase(): string | undefined {
++  if (window.location.protocol === 'file:') return undefined;
++  const b = import.meta.env.BASE_URL.replace(/\/$/, '');
++  return b.startsWith('.') ? undefined : b;
++}
++
+ function App() {
+   useEffect(() => {
+     // Keep the recovery marker long enough to protect the first navigation
+@@ -341,7 +352,7 @@ function App() {
+           <TooltipProvider>
+             <WouterRouter
+               hook={window.location.protocol === 'file:' ? useElectronHashLocation : undefined}
+-              base={window.location.protocol === 'file:' ? undefined : import.meta.env.BASE_URL.replace(/\/$/, '')}
++              base={routerBase()}
+             >
+               <NavigationGuardProvider>
+                 <AppContent />
+-- 
+2.43.0
+

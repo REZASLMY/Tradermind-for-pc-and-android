@@ -4,7 +4,7 @@ import { tradeService } from "../services/tradeService";
 import { analysisService } from "../services/analysisService";
 import { strategyService } from "../services/strategyService";
 import { accountService } from "../services/accountService";
-import { tradingBoxService } from "../services/tradingBoxService";
+import { isTradingBoxAvailableForAccount, tradingBoxService } from "../services/tradingBoxService";
 import { db, Trade, Strategy, AnalysisSession, Account, TradingBox, MTFScenario } from "../db/database";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
@@ -300,6 +300,14 @@ function tradeMarket(symbol: string): string {
   return 'Other';
 }
 
+/** فقط وقتی واقعاً روی صفحهٔ فرم معامله هستیم true می‌دهد (نه هنگام خروج از صفحه). */
+function isOnTradeFormRoute(): boolean {
+  const path = window.location.protocol === 'file:'
+    ? window.location.hash.replace(/^#/, '').split('?')[0]
+    : window.location.pathname;
+  return path.replace(/\/+$/, '').endsWith('/journal/trades/new');
+}
+
 export default function NewTrade() {
   const [, setLocation] = useLocation();
   // FIX: در hash routing الکترون، query params باید مستقیماً از hash خوانده شوند
@@ -332,7 +340,9 @@ export default function NewTrade() {
   const [isSaving, setIsSaving] = useState(false);
   const [showSavedIndicator, setShowSavedIndicator] = useState(false);
   const [allTrades, setAllTrades] = useState<Trade[]>([]);
-  const [isQuickMode, setIsQuickMode] = useState(false);
+  const [isQuickMode, setIsQuickMode] = useState(
+    searchParams.get('quick') === 'true' || (isNewTrade && !editId) || Boolean(journalTriggerId),
+  );
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [tradingBoxes, setTradingBoxes] = useState<TradingBox[]>([]);
@@ -344,6 +354,7 @@ export default function NewTrade() {
   const [newScenarioTimeframe, setNewScenarioTimeframe] = useState('');
   const journalCustomTags = useAppStore(s => s.journalCustomTags);
   const journalCustomEmotions = useAppStore(s => s.journalCustomEmotions);
+  const tradeAutosave = useAppStore(s => s.tradeAutosave);
 
   useEffect(() => {
     db.trades.toArray().then(setAllTrades);
@@ -393,6 +404,12 @@ export default function NewTrade() {
   const tradeIdRef = useRef<string | null>(editId || idFromUrl || null);
   const lastSavedRef = useRef<Trade | null>(null);
   const initialized = useRef(false);
+  const tradeReadyRef = useRef(false);
+  const isNewDraftRef = useRef(false);
+  const cancelBeforeCreateRef = useRef(false);
+  const discardInProgressRef = useRef(false);
+  const savePromiseRef = useRef<Promise<boolean> | null>(null);
+  const draftMarkerKey = 'tradermind-new-trade-draft';
   // Tracks the last set of URL params we initialized for — re-init when they change
   const lastInitKey = useRef<string>('__unset__');
   const requestNavigation = useGuardedNavigation();
@@ -404,10 +421,21 @@ export default function NewTrade() {
 
     // Skip if we already initialized for this exact combination (prevents StrictMode double-run)
     if (lastInitKey.current === currentKey && initialized.current) return;
+
+    // اصلاح باگ «معامله تکراری»: هنگام «ذخیره/انصراف» آدرس صفحه عوض می‌شود و یک رندر آخر
+    // بدون editId اجرا می‌شود؛ قبلاً همین رندر یک معامله خالی جدید می‌ساخت.
+    if (!isOnTradeFormRoute()) return;
+    // اگر قبلاً برای یک معامله مشخص باز شده‌ایم، بدون شناسه هیچ‌وقت معامله جدید نساز.
+    if (initialized.current && tradeIdRef.current && !editId && !idFromUrl) return;
+
     lastInitKey.current = currentKey;
 
     // Reset state for fresh initialization
     initialized.current = false;
+    tradeReadyRef.current = false;
+    isNewDraftRef.current = false;
+    cancelBeforeCreateRef.current = false;
+    discardInProgressRef.current = false;
     tradeIdRef.current = editId || idFromUrl || null;
     lastSavedRef.current = null;
     setTrade(null);
@@ -427,6 +455,7 @@ export default function NewTrade() {
         const existing = await tradeService.getTradeById(requestedTradeId);
         if (existing) {
           currentTrade = existing;
+          isNewDraftRef.current = !editId && sessionStorage.getItem(draftMarkerKey) === existing.id;
         }
       } 
       
@@ -440,10 +469,23 @@ export default function NewTrade() {
           return;
         }
 
+        if (cancelBeforeCreateRef.current) return;
+        // ثبت معامله فقط از داخل «سشن معاملاتی» انجام می‌شود (تریگر → ثبت معامله).
+        if (!journalSessionId && !sessionId) {
+          toast.info('ثبت معامله از این پس از داخل سشن معاملاتی انجام می‌شود.');
+          setLocation('/journal/sessions');
+          return;
+        }
         currentTrade = await tradeService.createTrade({
           sessionId: sessionId || null,
           journalSessionId: journalSessionId || null,
         });
+        if (cancelBeforeCreateRef.current) {
+          await tradeService.deleteTrade(currentTrade.id);
+          return;
+        }
+        isNewDraftRef.current = true;
+        sessionStorage.setItem(draftMarkerKey, currentTrade.id);
         tradeIdRef.current = currentTrade.id;
         // Update URL so a page refresh reloads this draft (doesn't go through Wouter
         // to avoid a re-render loop; query string is only used for recovery on refresh)
@@ -465,6 +507,11 @@ export default function NewTrade() {
           currentTrade = await tradeService.getTradeById(currentTrade.id) ?? currentTrade;
         } catch (error) {
           toast.error(error instanceof Error ? error.message : 'پیوند تریگر به معامله انجام نشد.');
+          if (!requestedTradeId) {
+            try { await tradeService.deleteTrade(currentTrade.id); } catch { /* preserve the original link error */ }
+            isNewDraftRef.current = false;
+            sessionStorage.removeItem(draftMarkerKey);
+          }
           if (journalSessionId) setLocation(`/journal/sessions/${journalSessionId}`);
           return;
         }
@@ -482,6 +529,7 @@ export default function NewTrade() {
       }
 
       setTrade(currentTrade);
+      tradeReadyRef.current = true;
       setPositionSizeInput(
         currentTrade.positionSize != null && !POSITION_SIZE_OPTIONS.includes(currentTrade.positionSize)
           ? String(currentTrade.positionSize)
@@ -572,6 +620,7 @@ export default function NewTrade() {
   };
 
   const saveTrade = useCallback(async (dataToSave: Trade, source: 'manual' | 'autosave' | 'navigation' = 'autosave') => {
+    if (discardInProgressRef.current) return false;
     if (!dataToSave.id) {
       toast.error('شناسهٔ معامله برای ذخیره پیدا نشد؛ معاملهٔ جدیدی ساخته نشد.');
       console.error('[TradeSave] rejected UPDATE without trade ID', { source });
@@ -585,38 +634,73 @@ export default function NewTrade() {
       operationId,
       timestamp: Date.now(),
     });
-    setIsSaving(true);
+    const operation = (async () => {
+      setIsSaving(true);
+      try {
+        const saved = await tradeService.updateTrade(dataToSave.id, dataToSave);
+        if (!saved) {
+          toast.error('معامله برای به‌روزرسانی پیدا نشد؛ رکورد تازه‌ای ساخته نشد.');
+          return false;
+        }
+        lastSavedRef.current = saved;
+        if (source !== 'autosave' && isNewDraftRef.current) {
+          isNewDraftRef.current = false;
+          sessionStorage.removeItem(draftMarkerKey);
+        }
+        setShowSavedIndicator(true);
+        setTimeout(() => setShowSavedIndicator(false), 2000);
+        return true;
+      } catch (error) {
+        console.error('[TradeSave] UPDATE failed', { tradeId: dataToSave.id, source, operationId, error });
+        toast.error('ذخیرهٔ معامله ناموفق بود.');
+        return false;
+      } finally {
+        setIsSaving(false);
+      }
+    })();
+    savePromiseRef.current = operation;
     try {
-      const saved = await tradeService.updateTrade(dataToSave.id, dataToSave);
-      if (saved) lastSavedRef.current = saved;
-      setShowSavedIndicator(true);
-      setTimeout(() => setShowSavedIndicator(false), 2000);
+      return await operation;
+    } finally {
+      if (savePromiseRef.current === operation) savePromiseRef.current = null;
+    }
+  }, []);
+
+  const discardNewDraft = useCallback(async () => {
+    if (!isNewDraftRef.current) return true;
+    discardInProgressRef.current = true;
+    try {
+      await savePromiseRef.current;
+      const id = tradeIdRef.current;
+      if (id) await tradeService.deleteTrade(id);
+      isNewDraftRef.current = false;
+      sessionStorage.removeItem(draftMarkerKey);
       return true;
     } catch (error) {
-      console.error('[TradeSave] UPDATE failed', { tradeId: dataToSave.id, source, operationId, error });
-      toast.error('ذخیرهٔ معامله ناموفق بود.');
+      discardInProgressRef.current = false;
+      console.error('[TradeDraft] discard failed', error);
+      toast.error('حذف پیش‌نویس معامله انجام نشد. دوباره تلاش کنید.');
       return false;
-    } finally {
-      setIsSaving(false);
     }
   }, []);
 
   useNavigationGuard({
-    isDirty: Boolean(trade && JSON.stringify(trade) !== JSON.stringify(lastSavedRef.current)),
+    isDirty: Boolean(trade && (isNewDraftRef.current || JSON.stringify(trade) !== JSON.stringify(lastSavedRef.current))),
     onSave: async () => {
-      if (trade) await saveTrade(trade);
+      return trade ? saveTrade(trade, 'navigation') : false;
     },
+    onDiscard: discardNewDraft,
   });
 
   useEffect(() => {
-    if (!trade || !initialized.current) return;
+    if (!trade || !initialized.current || !tradeAutosave) return;
     const timer = setTimeout(() => {
        if (JSON.stringify(trade) !== JSON.stringify(lastSavedRef.current)) {
          void saveTrade(trade, 'autosave');
       }
     }, 800);
     return () => clearTimeout(timer);
-  }, [trade, saveTrade]);
+  }, [trade, saveTrade, tradeAutosave]);
 
   // اتودیتکت نتیجه بر اساس سود/زیان
   useEffect(() => {
@@ -648,6 +732,7 @@ export default function NewTrade() {
     || (editId ? `/journal/trades/${editId}` : '/journal/trades');
 
   const handleCancel = async () => {
+    if (!tradeReadyRef.current) cancelBeforeCreateRef.current = true;
     requestNavigation(backUrl);
   };
 
@@ -672,6 +757,10 @@ export default function NewTrade() {
 
   const computeRMultiple = () => {
     if (!trade || trade.exitPrice === null || trade.exitPrice === undefined) return;
+    const netPnl = getNetPnl(trade);
+    if (trade.riskAmount != null && trade.riskAmount > 0 && netPnl != null) {
+      return (netPnl / trade.riskAmount).toFixed(2);
+    }
     const diff = Math.abs(trade.entryPrice - trade.stopLoss);
     if (diff === 0) return;
 
@@ -781,14 +870,78 @@ export default function NewTrade() {
       )}
 
       <div className="tm-trade-form grid gap-4 xl:grid-cols-2 2xl:grid-cols-3 items-start">
+        {isQuickMode && (
+          <section className="space-y-4 rounded-xl border border-primary/25 bg-primary/[0.025] p-4 xl:col-span-2 2xl:col-span-3" data-testid="quick-trade-form">
+            <div>
+              <h2 className="text-lg font-semibold">ثبت سریع اسکالپ</h2>
+              <p className="mt-1 text-xs text-muted-foreground">نماد، جهت، ورود و حد ضرر را ثبت کنید؛ بخش‌های اختیاری در حالت کامل در دسترس‌اند.</p>
+            </div>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-3">
+              <div className="space-y-1.5">
+                <Label>نماد</Label>
+                <Input
+                  value={trade.symbol}
+                  onChange={event => {
+                    const symbol = event.target.value.toUpperCase();
+                    handleChange('symbol', symbol);
+                    const found = TRADING_SYMBOLS.find(item => item.value === symbol);
+                    handleChange('market', found?.market ?? tradeMarket(symbol));
+                  }}
+                  placeholder="مثلاً XAUUSD"
+                  data-testid="quick-trade-symbol"
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>جهت</Label>
+                <div className="flex gap-2">
+                  <Button type="button" variant={trade.direction === 'long' ? 'default' : 'outline'} className="flex-1" onClick={() => handleChange('direction', 'long')}>خرید</Button>
+                  <Button type="button" variant={trade.direction === 'short' ? 'default' : 'outline'} className="flex-1" onClick={() => handleChange('direction', 'short')}>فروش</Button>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>وضعیت</Label>
+                <div className="flex gap-2">
+                  <Button type="button" variant={trade.status === 'open' ? 'default' : 'outline'} className="flex-1" onClick={() => handleChange('status', 'open')}>باز</Button>
+                  <Button type="button" variant={trade.status === 'closed' ? 'default' : 'outline'} className="flex-1" onClick={() => handleChange('status', 'closed')}>بسته</Button>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>قیمت ورود</Label>
+                <NumericInput value={trade.entryPrice} onValueChange={value => handleChange('entryPrice', value ?? 0)} data-testid="quick-entry-price" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>حد ضرر</Label>
+                <NumericInput value={trade.stopLoss} onValueChange={value => handleChange('stopLoss', value ?? 0)} data-testid="quick-stop-loss" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>حد سود (اختیاری)</Label>
+                <NumericInput value={trade.takeProfit} onValueChange={value => handleChange('takeProfit', value)} />
+              </div>
+              {trade.status === 'closed' && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label>قیمت خروج</Label>
+                    <NumericInput value={trade.exitPrice} onValueChange={value => handleChange('exitPrice', value)} data-testid="quick-exit-price" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>سود / زیان</Label>
+                    <NumericInput value={trade.profitLoss} onValueChange={value => handleChange('profitLoss', value)} data-testid="quick-profit-loss" />
+                  </div>
+                </>
+              )}
+            </div>
+          </section>
+        )}
+
         {/* SECTION 1: Trade Info */}
-        <section className="space-y-6 xl:col-span-2 2xl:col-span-3">
+        {!isQuickMode && (<section className="space-y-6 xl:col-span-2 2xl:col-span-3">
           <h2 className="text-lg font-semibold border-b pb-2">1. Trade Info</h2>
           {journalSessionId && <Card className="border-primary/20 bg-primary/[0.03]" data-testid="card-journal-session-context">
             <CardContent className="space-y-3 p-4">
               <div><p className="text-xs font-medium text-primary">زمینهٔ ثابت سشن</p><p className="mt-1 text-sm text-muted-foreground">نماد، بازار، حساب، باکس و استراتژی از سشن خوانده می‌شوند و در فرم معامله دوباره درخواست نمی‌شوند.</p></div>
               {journalSessionContext ? <>
-                <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-3 text-sm">
                   <div><span className="text-xs text-muted-foreground">نماد</span><p className="font-semibold" data-testid="text-trade-session-symbol">{parseJournalArray(journalSessionContext.session.symbols).join(' / ') || trade.symbol}</p></div>
                   <div><span className="text-xs text-muted-foreground">بازار</span><p className="font-semibold" data-testid="text-trade-session-market">{journalSessionContext.options.find(option => option.id === journalSessionContext.session.marketOptionId)?.label ?? trade.market ?? 'ثبت نشده'}</p></div>
                   <div><span className="text-xs text-muted-foreground">حساب</span><p className="font-semibold" data-testid="text-trade-session-account">{journalSessionContext.account?.name ?? 'در دسترس نیست'}</p></div>
@@ -807,7 +960,7 @@ export default function NewTrade() {
               </> : <p className="text-sm text-muted-foreground" data-testid="status-trade-session-context-loading">در حال بارگذاری زمینهٔ سشن…</p>}
             </CardContent>
           </Card>}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-6">
             {!journalSessionId && <div className="space-y-2">
               <Label>نماد معاملاتی (Symbol)</Label>
               <SymbolSelector
@@ -903,7 +1056,8 @@ export default function NewTrade() {
                  const nextAccountId = v === 'none' ? null : v;
                  handleChange('accountId' as any, nextAccountId);
                  const selectedBox = tradingBoxes.find(box => box.id === (trade as any).boxId);
-                 if (selectedBox?.accountId && selectedBox.accountId !== nextAccountId) {
+                 const selectedAccount = accounts.find(account => account.id === nextAccountId);
+                 if (selectedBox && !isTradingBoxAvailableForAccount(selectedBox, selectedAccount)) {
                    handleChange('boxId' as any, null);
                  }
                }}>
@@ -938,7 +1092,7 @@ export default function NewTrade() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">بدون باکس</SelectItem>
-                   {tradingBoxes.filter(b => b.status === 'active' && (!(b as any).accountId || (b as any).accountId === (trade as any).accountId)).map(b => (
+                   {tradingBoxes.filter(b => b.status === 'active' && isTradingBoxAvailableForAccount(b, accounts.find(account => account.id === (trade as any).accountId))).map(b => (
                     <SelectItem key={b.id} value={b.id}>
                       <span className="flex items-center gap-2">
                         <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: b.color }} />
@@ -950,12 +1104,12 @@ export default function NewTrade() {
               </Select>
             </div>}
           </div>
-        </section>
+        </section>)}
 
         {/* SECTION 2: Entry Details */}
-        <section className="space-y-6">
+        {!isQuickMode && (<section className="space-y-6">
           <h2 className="text-lg font-semibold border-b pb-2">2. Entry Details</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(15rem,1fr))] gap-6">
             <div className="space-y-2">
               <Label>Opened At</Label>
               <Input 
@@ -977,12 +1131,12 @@ export default function NewTrade() {
               <NumericInput value={trade.takeProfit} onValueChange={value => handleChange('takeProfit', value)} />
             </div>
           </div>
-        </section>
+        </section>)}
 
         {/* SECTION 3: Position Sizing — از ۰.۰۱ لات شروع می‌شود */}
-        <section className="space-y-6">
+        {!isQuickMode && (<section className="space-y-6">
           <h2 className="text-lg font-semibold border-b pb-2">3. حجم و ریسک</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-6">
             {/* حجم پوزیشن — لیست از ۰.۰۱ */}
             <div className="space-y-2">
               <Label>حجم پوزیشن (لات)</Label>
@@ -1057,10 +1211,10 @@ export default function NewTrade() {
               <NumericInput value={trade.riskAmount} onValueChange={value => handleChange('riskAmount', value)} />
             </div>
           </div>
-        </section>
+        </section>)}
 
         {/* SECTION 4: Exit Details */}
-        {trade.status === 'closed' && (
+        {!isQuickMode && trade.status === 'closed' && (
           <section className="space-y-6 animate-in slide-in-from-bottom-4">
             <h2 className="text-lg font-semibold border-b pb-2">4. Exit Details</h2>
             
@@ -1086,7 +1240,7 @@ export default function NewTrade() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(15rem,1fr))] gap-6">
               <div className="space-y-2">
                 <Label>Closed At</Label>
                 <Input 
@@ -1106,7 +1260,7 @@ export default function NewTrade() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <Label>R Multiple</Label>
-                  {computedR && <span className="text-xs text-muted-foreground">Auto: {computedR}R</span>}
+                  {computedR && <span className="text-xs text-muted-foreground" title="از سود/زیان خالص تقسیم بر مبلغ ریسک استفاده می‌کند؛ اگر ریسک دلاری ثبت نشده باشد، از فاصلهٔ ورود تا حد ضرر محاسبه می‌شود.">محاسبه‌شده: {computedR}R</span>}
                 </div>
                 <NumericInput value={trade.rMultiple} onValueChange={value => handleChange('rMultiple', value)} />
               </div>
@@ -1143,7 +1297,7 @@ export default function NewTrade() {
         {!isQuickMode && !journalSessionId && trade.status === 'closed' && (
           <section className="space-y-4">
             <h2 className="text-lg font-semibold border-b pb-2">۴ب. مدیریت معامله</h2>
-            <div className="grid grid-cols-1 min-[380px]:grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-3">
               {[
                 { key: 'slMoved',         label: 'جابجایی حد ضرر' },
                 { key: 'tpMoved',         label: 'جابجایی حد سود' },
@@ -1322,7 +1476,7 @@ export default function NewTrade() {
                 <Card key={tf} className="bg-muted/10">
                   <CardContent className="p-4 space-y-3">
                     <div className="font-semibold text-sm">{tf}</div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-3">
                       <div className="space-y-1">
                         <Label className="text-xs">بایاس / جهت</Label>
                         <Input value={tfData.bias || ''} onChange={e => update('bias', e.target.value)} placeholder="صعودی / نزولی / خنثی" className="h-8 text-sm" />
@@ -1405,7 +1559,7 @@ export default function NewTrade() {
                           <X className="h-3.5 w-3.5 ml-1" /> حذف
                         </Button>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-3">
                         <div className="space-y-1">
                           <Label className="text-xs">شرط فعال‌شدن (Trigger)</Label>
                           <Textarea
@@ -1465,7 +1619,7 @@ export default function NewTrade() {
           <section className="space-y-6 animate-in slide-in-from-bottom-4 xl:col-span-2 2xl:col-span-3">
             <h2 className="text-lg font-semibold border-b pb-2">8. Trade Review</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-6">
               <div className="space-y-2">
                 <Label>What did I do well?</Label>
                 <Textarea 
@@ -1482,7 +1636,7 @@ export default function NewTrade() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-6">
               <div className="space-y-2">
                 <Label>Would I take this trade again?</Label>
                 <div className="flex gap-2">

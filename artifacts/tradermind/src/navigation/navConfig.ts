@@ -59,19 +59,9 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "سشن‌های معاملاتی",
       },
       {
-        href: "/journal/analytics",
-        icon: BarChart3,
-        label: "تحلیل ژورنال",
-      },
-      {
         href: "/journal/daily",
         icon: BookOpen,
         label: t.nav.dailyJournal,
-      },
-      {
-        href: "/journal/insights",
-        icon: Lightbulb,
-        label: "نکات معاملاتی",
       },
     ],
   },
@@ -104,12 +94,7 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         href: "/reports",
         icon: BarChart3,
-        label: t.nav.reports,
-      },
-      {
-        href: "/analytics/edge",
-        icon: Zap,
-        label: "کشف مزیت",
+        label: "مرکز گزارش‌ها",
       },
       {
         href: "/symbols",
@@ -124,16 +109,6 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "تحلیل عملکرد",
     items: [
-      {
-        href: "/performance",
-        icon: BarChart3,
-        label: "داشبورد عملکرد",
-      },
-      {
-        href: "/analytics/advanced",
-        icon: Zap,
-        label: "تحلیل پیشرفته",
-      },
       {
         href: "/analytics/psychology",
         icon: HeartPulse,
@@ -261,7 +236,7 @@ export interface RailItem extends NavLeaf { match: string[]; exact?: boolean }
 export const RAIL_ITEMS: RailItem[] = [
   { href: '/', icon: LayoutDashboard, label: 'داشبورد', match: ['/'], exact: true },
   { href: '/journal/trades', icon: Wallet, label: 'ژورنال معاملاتی', match: ['/journal'] },
-  { href: '/analytics/advanced', icon: BarChart3, label: 'تحلیل پیشرفته', match: ['/analytics/advanced'] },
+  { href: '/reports', icon: BarChart3, label: 'گزارش‌ها', match: ['/reports', '/performance', '/analytics/advanced', '/analytics/edge', '/journal/analytics', '/journal/insights'] },
   { href: '/risk/management', icon: ShieldCheck, label: 'مدیریت ریسک', match: ['/risk'] },
   { href: '/profile', icon: UserCircle2, label: 'پروفایل و آمار', match: ['/profile'] },
   { href: '/settings', icon: Settings, label: 'تنظیمات', match: ['/settings'] },

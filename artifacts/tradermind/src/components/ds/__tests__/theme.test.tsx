@@ -7,7 +7,7 @@ import { useAppStore } from '../../../store/useAppStore';
 
 const root = () => document.documentElement;
 
-describe('three themes + 5-color picker', () => {
+describe('three themes + 10-color picker', () => {
   beforeEach(() => {
     root().className = '';
     root().removeAttribute('style');
@@ -27,12 +27,12 @@ describe('three themes + 5-color picker', () => {
 
   it.each(['light', 'dark', 'neon'] as const)('color picker still drives --primary in %s', (theme) => {
     const seen = new Set<string>();
-    for (const colorTheme of ['blue', 'violet', 'emerald', 'amber', 'rose'] as const) {
+    for (const colorTheme of ['blue', 'violet', 'emerald', 'amber', 'rose', 'cyan', 'orange', 'pink', 'teal', 'indigo'] as const) {
       act(() => useAppStore.setState({ theme, colorTheme }));
       const { unmount } = render(<ThemeProvider><div /></ThemeProvider>);
       seen.add(root().style.getPropertyValue('--primary'));
       unmount();
     }
-    expect(seen.size).toBe(5);
+    expect(seen.size).toBe(10);
   });
 });

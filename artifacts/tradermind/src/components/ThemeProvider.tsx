@@ -8,6 +8,11 @@ const COLOR_THEMES: Record<ColorTheme, string> = {
   emerald: '#10b981',
   amber: '#f59e0b',
   rose: '#f43f5e',
+  cyan: '#06b6d4',
+  orange: '#f97316',
+  pink: '#ec4899',
+  teal: '#14b8a6',
+  indigo: '#6366f1',
 };
 
 function hexToHsl(hex: string): string | null {

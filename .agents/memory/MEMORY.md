@@ -1,0 +1,1 @@
+- [GitHub push protection](github-secret-push-protection.md) — scan the full pushed history; remove exposed credentials from all unpushed commits, never bypass.

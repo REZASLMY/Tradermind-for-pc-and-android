@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
+import { TradeExcursionCard } from '../components/journal/TradeExcursionCard';
+import { SessionAnalysisPanel } from '../components/journal/SessionAnalysisPanel';
 
 type PsychologyPhase = { optionIds: string[]; intensity: number };
 type Psychology = { before: PsychologyPhase; during: PsychologyPhase; after: PsychologyPhase };
@@ -292,6 +294,8 @@ export default function JournalTradeReview() {
         </Button>
       </header>
 
+      <SessionAnalysisPanel tradeId={trade.id} journalSessionId={trade.journalSessionId} />
+
       {linkedTrigger && (
         <Card data-testid="card-linked-trigger-details">
           <CardHeader><CardTitle className="text-base">جزئیات فعلی تریگر پیوندخورده</CardTitle></CardHeader>
@@ -398,6 +402,8 @@ export default function JournalTradeReview() {
           </div>
         </CardContent>
       </Card>
+
+      <TradeExcursionCard trade={trade} onSaved={load} />
 
       <Card>
         <CardHeader><CardTitle className="text-base">روانشناسی</CardTitle></CardHeader>

@@ -4,6 +4,7 @@ import { Bell, Moon, Search, Sparkles, Sun, UserCircle2 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useAppStore, type ThemeMode } from '../../store/useAppStore';
 import { setPendingSearch } from '../../lib/pendingSearch';
+import { VoiceTypingButton } from '../ui/VoiceTypingButton';
 
 const NEXT_THEME: Record<ThemeMode, ThemeMode> = { light: 'dark', dark: 'neon', neon: 'light', system: 'light' };
 const THEME_ICON = { light: Sun, dark: Moon, neon: Sparkles, system: Sun } as const;
@@ -26,15 +27,20 @@ export function AppHeader() {
   return (
     <header className="tm-panel tm-header hidden items-center gap-3 px-4 md:flex" dir="rtl">
       <form onSubmit={submit} role="search" className="relative flex-1">
-        <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-        <input
-          type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="جست‌وجو در معاملات، یادداشت‌ها، تحلیل‌ها…"
-          aria-label="جست‌وجو"
-          className="tm-input h-9 w-full pr-9 pl-3 text-[13px]"
-        />
+        <div className="space-y-0.5">
+          <div className="flex h-5 justify-end"><VoiceTypingButton /></div>
+          <div className="relative">
+            <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <input
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="جست‌وجو در معاملات، یادداشت‌ها، تحلیل‌ها…"
+              aria-label="جست‌وجو"
+              className="tm-input h-9 w-full pr-9 pl-3 text-[13px]"
+            />
+          </div>
+        </div>
       </form>
       <button
         type="button"

@@ -7,11 +7,13 @@ import { computeOverview, type Ranked } from '../../services/dashboardOverview';
 import type { Trade } from '../../db/database';
 import { cn } from '../../lib/utils';
 
-export type OverviewRange = 'today' | 'week' | 'month' | 'custom';
-const RANGES: { key: Exclude<OverviewRange, 'custom'>; label: string }[] = [
+export type OverviewRange = 'today' | 'week' | 'month' | 'year' | 'custom';
+const RANGES: { key: OverviewRange; label: string }[] = [
   { key: 'today', label: 'امروز' },
   { key: 'week', label: 'این هفته' },
   { key: 'month', label: 'این ماه' },
+  { key: 'year', label: 'امسال' },
+  { key: 'custom', label: 'دلخواه' },
 ];
 
 export interface OverviewPrev { winRate: number | null; profitFactor: number | null; closedCount: number }

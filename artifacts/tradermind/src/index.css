@@ -558,7 +558,7 @@ textarea:focus-visible,
 :root {
   --tm-rail-w: 12.5rem;
   --tm-gap: 0.75rem;
-  --tm-header-h: 3.25rem;
+  --tm-header-h: 3.75rem;
 }
 .tm-rail {
   position: fixed;
@@ -662,3 +662,26 @@ textarea:focus-visible,
 .neon .tm-kpi svg { filter: drop-shadow(0 0 6px hsl(var(--primary) / 0.55)); }
 .tm-no-glass.neon .tm-kpi svg { filter: none; }
 @media (max-width: 767px) { .neon .tm-kpi svg { filter: none; } }
+
+
+/* فیلد تاریخ و ساعت: دکمهٔ انتخاب تقویم/ساعت هنگام کوچک‌بودن ستون پنهان نشود */
+input[type="datetime-local"],
+input[type="date"],
+input[type="time"] {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+/* فرم معامله: هر ستون/کادر می‌تواند کوچک شود و محتوایش از کادر بیرون نزند */
+.tm-trade-form > * { min-width: 0; }
+.tm-trade-form input,
+.tm-trade-form select,
+.tm-trade-form textarea,
+.tm-trade-form button[role="combobox"] { max-width: 100%; }
